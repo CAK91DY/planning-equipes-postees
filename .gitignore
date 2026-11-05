@@ -225,3 +225,6 @@ __pycache__/
 .venv/
 .env
 output/replanif*/
+
+# Calculs de contrôle (étape 2) : la référence reste output/planning.csv
+output/recalcul/
