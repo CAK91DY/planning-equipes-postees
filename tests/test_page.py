@@ -35,3 +35,16 @@ def test_page_reprend_le_planning_de_reference(tmp_path):
     # Données publiques : mention obligatoire et aucun motif médical affiché
     assert "Données entièrement fictives" in page
     assert "MALADIE" not in page and "maladie" not in page.lower()
+
+
+def test_page_affiche_la_replanification():
+    dossier = RACINE / "output" / "replanif"
+    d = generer_page.charger(RACINE / "output", RACINE / "data", RACINE / "config" / "regles.yaml")
+    page = generer_page.construire_page(d, dossier)
+    rapport = json.loads((dossier / "rapport.json").read_text(encoding="utf-8"))
+    nouveau = pd.read_csv(dossier / "planning.csv")
+    # Une ligne « avant → après » par quart modifié, et autant de cases en pointillés
+    lignes_tableau = re.findall(r"<td>[^<]* → <b>[^<]*</b></td></tr>", page)
+    assert len(lignes_tableau) == rapport["indicateurs"]["modifications_vs_reference"]
+    assert len(re.findall(r"<td class='q q[MAN] modifie'", page)) == (nouveau.origine == "MODIFIE").sum()
+    assert rapport["anomalies_controle"] == 0 and rapport["trous_couverture"] == 0

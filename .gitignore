@@ -224,7 +224,7 @@ __pycache__/
 .pytest_cache/
 .venv/
 .env
-output/replanif*/
+# output/replanif/ est versionné : la page affiche la démonstration de replanification
 
 # Calculs de contrôle (étape 2) : la référence reste output/planning.csv
 output/recalcul/

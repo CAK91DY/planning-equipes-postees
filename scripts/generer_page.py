@@ -60,19 +60,25 @@ def liste_fr(elements: list[str]) -> str:
 
 
 # ------------------------------------------------------------------ lecture
+def jours_d_absence(absences: pd.DataFrame, jours: list[date]) -> dict:
+    """(matricule, date) -> motif, pour chaque jour d'absence compris dans l'horizon."""
+    resultat = {}
+    for r in absences.itertuples():
+        d, fin = date.fromisoformat(r.date_debut), date.fromisoformat(r.date_fin)
+        while d <= fin:
+            if jours[0] <= d <= jours[-1]:
+                resultat[(r.matricule, d)] = r.motif
+            d += timedelta(days=1)
+    return resultat
+
+
 def charger(sortie: Path, donnees: Path, regles: Path) -> dict:
     cfg = yaml.safe_load(regles.read_text(encoding="utf-8"))
     d0 = date.fromisoformat(cfg["horizon"]["date_debut"])
     jours = [d0 + timedelta(days=i) for i in range(cfg["horizon"]["nb_jours"])]
 
     absences = pd.read_csv(donnees / "absences.csv")
-    jours_absence = {}   # (matricule, date) -> motif
-    for r in absences.itertuples():
-        d, fin = date.fromisoformat(r.date_debut), date.fromisoformat(r.date_fin)
-        while d <= fin:
-            if jours[0] <= d <= jours[-1]:
-                jours_absence[(r.matricule, d)] = r.motif
-            d += timedelta(days=1)
+    jours_absence = jours_d_absence(absences, jours)
 
     return {
         "jours": jours,
@@ -218,23 +224,36 @@ def bloc_replanification(d: dict, dossier: Path) -> tuple[str, str]:
     ano = pd.read_csv(dossier / "anomalies.csv")
     nouveau = pd.read_csv(dossier / "planning.csv")
     cle = ["date", "matricule", "quart", "poste"]
-    diff = d["planning"][cle].merge(nouveau[cle], how="outer", indicator=True)
-    ajouts = diff[diff._merge == "right_only"].sort_values(["date", "quart"])
-    retraits = diff[diff._merge == "left_only"].sort_values(["date", "quart"])
+    # Cases inchangées : on garde l'origine de la référence (volant, quart supplémentaire…)
+    origine_ref = d["planning"].set_index(cle).origine
+    nouveau["origine"] = [origine_ref.get(tuple(r[c] for c in cle), r["origine"]) if r["origine"] == "INCHANGE"
+                          else r["origine"] for _, r in nouveau.iterrows()]
+    # Absences du scénario (données copiées dans output/replanif/donnees avec la nouvelle absence)
+    d_scenario = dict(d)
+    if (dossier / "donnees" / "absences.csv").exists():
+        d_scenario["jours_absence"] = jours_d_absence(pd.read_csv(dossier / "donnees" / "absences.csv"), d["jours"])
+    diff = d["planning"][cle].merge(nouveau[cle], how="outer", indicator="action")
+    diff["action"] = diff.action.map({"left_only": "retiré", "right_only": "ajouté", "both": "inchangé"})
+    changements = diff[diff.action != "inchangé"].sort_values(["date", "quart", "poste", "action"], ascending=[1, 1, 1, 0])
     scenario = (dossier / "scenario.txt").read_text(encoding="utf-8").strip() if (dossier / "scenario.txt").exists() else ""
     nb = rap["indicateurs"]["modifications_vs_reference"]
-    lignes = "".join(
-        f"<tr><td>{date.fromisoformat(r.date).day}/{date.fromisoformat(r.date).month}</td><td>{e(r.matricule)}</td>"
-        f"<td>{e(LIBELLES_QUART[r.quart])}</td><td>{e(LIBELLES_POSTE[r.poste])}</td><td>{'ajouté' if r._merge == 'right_only' else 'retiré'}</td></tr>"
-        for r in pd.concat([retraits, ajouts]).sort_values(["date", "_merge"]).itertuples())
+    # Une ligne par quart modifié : qui le tenait dans le planning publié -> qui le tient maintenant
+    lignes = ""
+    for (jour, quart, poste), groupe in changements.groupby(["date", "quart", "poste"], sort=True):
+        avant = ", ".join(groupe[groupe.action == "retiré"].matricule) or "—"
+        apres = ", ".join(groupe[groupe.action == "ajouté"].matricule) or "—"
+        j = date.fromisoformat(jour)
+        lignes += (f"<tr><td>{JOURS_COURTS[j.weekday()]} {j.day}/{j.month}</td><td>{e(LIBELLES_QUART[quart])}</td>"
+                   f"<td>{e(LIBELLES_POSTE[poste])}</td><td>{e(avant)} → <b>{e(apres)}</b></td></tr>")
     encadre = (f"<b>Replanification :</b> {e(scenario)} → <b>{nombre(nb)} changement{'s' if nb > 1 else ''}</b> "
                f"seulement, {nombre(len(ano))} anomalie, {nombre(rap['trous_couverture'])} poste non couvert, "
                f"calcul en {nombre(rap['temps_resolution_s'], 1)} s. Le manager valide toujours avant publication.")
     section = f"""<section class="carte">
   <h2>Replanification : {e(scenario)}</h2>
-  <p class="note">Planning recalculé en modifiant le moins possible le planning publié. Cases encadrées en pointillés : affectations modifiées.</p>
-  {grille(d, nouveau, 'Planning après replanification')}
-  <table class="diff"><thead><tr><th>Date</th><th>Opérateur</th><th>Quart</th><th>Poste</th><th>Changement</th></tr></thead>
+  <p class="note">Le moteur repart du planning publié et le modifie le moins possible.
+     Cases en pointillés orange : affectations modifiées ; « Abs » : nouvelle absence.</p>
+  {grille(d_scenario, nouveau, 'Planning après replanification')}
+  <table class="diff"><thead><tr><th>Jour</th><th>Quart</th><th>Poste</th><th>Avant → après</th></tr></thead>
   <tbody>{lignes}</tbody></table>
 </section>"""
     return encadre, section
