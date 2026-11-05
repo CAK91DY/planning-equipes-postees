@@ -218,3 +218,10 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Spécifique au projet
+__pycache__/
+.pytest_cache/
+.venv/
+.env
+output/replanif*/

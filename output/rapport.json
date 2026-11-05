@@ -1,0 +1,27 @@
+{
+  "statut": "OPTIMAL",
+  "temps_resolution_s": 1.09,
+  "objectif": 66.0,
+  "trous_couverture": 0,
+  "anomalies_controle": 0,
+  "indicateurs": {
+    "affectations": 336,
+    "par_origine": {
+      "CYCLE": 314,
+      "VOLANT": 20,
+      "QUART_SUPPLEMENTAIRE": 2
+    },
+    "quarts_supplementaires": 2,
+    "modifications_vs_reference": 0,
+    "quarts_par_personne_min": 5,
+    "quarts_par_personne_max": 19,
+    "nuits_volants": {
+      "E021": 1,
+      "E022": 3,
+      "E023": 1,
+      "E024": 1
+    },
+    "demandes_repos_respectees": 3,
+    "demandes_repos_total": 3
+  }
+}

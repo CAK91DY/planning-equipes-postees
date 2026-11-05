@@ -1,0 +1,36 @@
+# Règles du planning des équipes postées — site pétrochimique (exemple, données fictives)
+# Toutes les valeurs sont des HYPOTHÈSES à valider avec les RH et l'exploitation
+# (accord d'entreprise, convention collective, organisation réelle des quarts).
+
+horizon:
+  date_debut: "2026-12-07"   # un lundi
+  nb_jours: 28
+
+quarts:
+  # code: [heure_debut, heure_fin]  (N se termine le lendemain)
+  M: ["06:00", "14:00"]
+  A: ["14:00", "22:00"]
+  N: ["22:00", "06:00"]
+
+# Cycle 5x8 : 5 équipes, cycle de 10 jours, chaque jour un quart = une équipe.
+cycle:
+  date_reference: "2026-12-07"      # jour 0 du cycle pour l'équipe A
+  motif: ["M", "M", "A", "A", "N", "N", "R", "R", "R", "R"]
+  decalage_equipes: {A: 0, B: 2, C: 4, D: 6, E: 8}
+
+regles_dures:
+  repos_min_heures: 11              # interdit A->M, N->M, N->A
+  max_jours_consecutifs: 6
+  max_nuits_consecutives: 3
+  max_quarts_horizon: 20            # plafond par personne sur l'horizon
+
+pondérations:
+  trou_couverture: 10000            # poste non couvert (dernier recours)
+  ecart_cycle: 10                   # quart différent du cycle prévu
+  quart_supplementaire: 15          # quart ajouté sur un jour de repos (heures sup)
+  changement_poste: 2               # poste différent du poste habituel
+  sureffectif: 8                    # personne affectée au-delà du besoin
+  equite_charge_volants: 3          # écart max-min des quarts entre volants
+  equite_nuits_volants: 3           # écart max-min des nuits entre volants
+  demande_non_respectee: 20
+  modification_vs_reference: 12     # mode replanification : stabilité
