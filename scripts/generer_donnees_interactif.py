@@ -113,6 +113,7 @@ def main() -> None:
         "cycle": regles["cycle"],
         "regles": regles["regles_dures"],
         "transitions_interdites": [["A", "M"], ["N", "M"], ["N", "A"]],
+        "feries": ["2026-12-25", "2027-01-01"],                     # affichage : jours fériés majorés
         "besoins": {q: {p: 1 for p in HABILITATIONS} for q in "MAN"},
         "types_absence": {
             "CP": {"libelle": "Congés payés", "court": "CP", "compteur": "CP", "sur_demande": True},

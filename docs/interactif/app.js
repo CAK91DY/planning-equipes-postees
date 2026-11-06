@@ -34,6 +34,10 @@
   const ABREGE = { CHEF_QUART: "Chef", OP_TABLEAU: "Tab.", OP_EXTERIEUR: "Ext." };
   let replies = new Set();
   try { replies = new Set(JSON.parse(localStorage.getItem(CLE_REPLIES) || "[]")); } catch (err) { /* sans mémoire */ }
+  const CLE_DENSITE = "planning-postes-densite";
+  let densite = "compact";
+  try { densite = localStorage.getItem(CLE_DENSITE) === "confortable" ? "confortable" : "compact"; } catch (err) { /* compact */ }
+  const appliquerDensite = () => document.body.classList.toggle("confortable", densite === "confortable");
   const memoriserReplies = () => { try { localStorage.setItem(CLE_REPLIES, JSON.stringify([...replies])); } catch (err) { /* rien */ } };
   const messages = [];
 
@@ -266,6 +270,10 @@
           <h2>${p ? "Planning proposé, non publié" : "Planning publié"}</h2>
           <p class="note">Cliquez sur une case pour la modifier.</p>
           <div class="outils-grille">
+            <span class="groupe-boutons" role="group" aria-label="Affichage">
+              <button type="button" class="secondaire petit" data-action="densite" data-valeur="compact" aria-pressed="${densite === "compact"}">Compact</button>
+              <button type="button" class="secondaire petit" data-action="densite" data-valeur="confortable" aria-pressed="${densite === "confortable"}">Confortable</button>
+            </span>
             <button type="button" class="secondaire petit" data-action="replier-tout">Tout replier</button>
             <button type="button" class="secondaire petit" data-action="deplier-tout">Tout déplier</button>
           </div>
@@ -275,21 +283,24 @@
           <table class="grille"><thead><tr>${entete(ctx)}</tr></thead><tbody>${lignes(ctx, donnees, plan, ind, anomalies, modifies, affichees)}</tbody></table>
         </div>
         <ul class="legende">
-          ${Object.entries(donnees.quarts).map(([q, d]) => `<li><span class="q${q}">${q}</span>${e(d.libelle)} ${e(d.horaire)}</li>`).join("")}
+          ${Object.entries(donnees.quarts).map(([q, d]) => `<li><span class="q${q}">${q}</span>${e(d.libelle)} ${e(d.horaire.replace(/ h–/, "–"))}</li>`).join("")}
           <li><span class="repos"></span>Repos</li>
-          <li><span class="absence">CP</span>Absence validée</li>
+          <li><span class="absence">CP</span>Absence</li>
           <li><span class="qM attente">M</span>Demande en attente</li>
-          <li><span class="qM volant">M</span>Remplacement par un volant</li>
-          <li><span class="qM sup">M</span>Quart supplémentaire</li>
-          <li><span class="qM modifie">M</span>Modifié par la proposition</li>
+          <li><span class="qM volant">M</span>Volant</li>
+          <li><span class="qM sup">M</span>Quart sup.</li>
+          <li><span class="qM modifie">M</span>Modifié</li>
+          <li><span class="repos we"></span>Week-end</li>
+          <li><span class="repos ferie"></span>Férié</li>
         </ul>
       </div>`;
   }
   function entete(ctx) {
     return `<th class="col-eq" scope="col" title="Équipe">Éq.</th><th class="col-nom" scope="col">Opérateur</th>` + ctx.jours.map((j) => {
       const js = M.jourSemaine(j);
-      return `<th scope="col" class="${js === 0 || js === 6 ? "we" : ""}${js === 1 ? " lundi" : ""}" title="${e(dateLongue(j))}"><span>${LETTRES[js]}</span>${Number(j.slice(8))}</th>`;
-    }).join("") + `<th class="col-total" scope="col" title="Quarts travaillés · dont nuits">Q · N</th>`;
+      const ferie = (ctx.donnees.feries || []).includes(j);
+      return `<th scope="col" class="${js === 0 || js === 6 ? "we" : ""}${js === 1 ? " lundi" : ""}${ferie ? " ferie" : ""}" title="${e(dateLongue(j))}${ferie ? " · jour férié" : ""}"><span>${LETTRES[js]}</span>${Number(j.slice(8))}</th>`;
+    }).join("") + `<th class="col-total" scope="col" title="Quarts travaillés sur le mois, dont nuits">Quarts<br>nuits</th>`;
   }
   function lignes(ctx, donnees, plan, ind, anomalies, modifies, affichees) {
     const equipes = [...new Set(donnees.collaborateurs.map((c) => c.equipe))].sort((a, b) => (a === "VOLANT") - (b === "VOLANT") || (a < b ? -1 : 1));
@@ -308,7 +319,8 @@
       }
       membres.forEach((c, rang) => {
         const cases = ctx.jours.map((j) => {
-          const lundi = M.jourSemaine(j) === 1 ? " lundi" : "";
+          const js = M.jourSemaine(j);
+          const lundi = (js === 1 ? " lundi" : "") + (js === 0 || js === 6 ? " we" : "") + ((donnees.feries || []).includes(j) ? " ferie" : "");
           const k = M.cle(c.id, j);
           const absV = absenceDu(c.id, j, affichees, ["validee"]);
           const absA = absV ? null : absenceDu(c.id, j, affichees, ["en_attente"]);
@@ -612,6 +624,11 @@
         memoriserReplies(); rendrePlanning();
         break;
       }
+      case "densite":
+        densite = el.dataset.valeur === "confortable" ? "confortable" : "compact";
+        try { localStorage.setItem(CLE_DENSITE, densite); } catch (err) { /* rien */ }
+        appliquerDensite(); rendrePlanning();
+        break;
       case "replier-tout": etat.donnees.collaborateurs.forEach((c) => replies.add(c.equipe)); memoriserReplies(); rendrePlanning(); break;
       case "deplier-tout": replies.clear(); memoriserReplies(); rendrePlanning(); break;
       case "valider-prop": validerProposition(); break;
@@ -696,6 +713,7 @@
   // ------------------------------------------------------------------ démarrage
   if (!charger()) { initialiser(); enregistrer(); }
   $("#exemples").innerHTML = EXEMPLES.map((t) => `<button type="button" data-action="exemple" data-texte="${e(t)}">${e(t)}</button>`).join("");
+  appliquerDensite();
   accueil();
   rendreTout();
   window.__planning = { etat: () => etat, traiterDemande };

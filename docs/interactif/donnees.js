@@ -52,6 +52,7 @@ const DONNEES_PLANNING = {
   "max_nuits_consecutives": 3,
   "max_quarts_horizon": 20
  },
+ "feries": ["2026-12-25", "2027-01-01"],
  "transitions_interdites": [
   [
    "A",
