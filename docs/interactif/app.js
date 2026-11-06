@@ -707,7 +707,7 @@
   });
 
   function accueil() {
-    direAssistant("Bonjour. Je prépare les ajustements du planning à partir de vos demandes : absences, congés, RTT, remplacements. Chaque proposition respecte les règles de repos et d'habilitation ; vous la validez avant publication.");
+    direAssistant("Bonjour. Indiquez une absence, un congé ou un remplacement : je prépare une proposition conforme aux règles, que vous validez.");
   }
 
   // ------------------------------------------------------------------ démarrage
