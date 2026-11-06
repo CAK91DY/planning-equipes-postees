@@ -1,6 +1,7 @@
 """Tests du planning interactif (docs/interactif) : moteur JavaScript et assistant, exécutés avec Node.js.
 
-Le moteur JavaScript doit retrouver les résultats du moteur de référence OR-Tools."""
+Équipe resserrée (17 personnes) préparée par scripts/generer_donnees_interactif.py. Le moteur JavaScript
+doit retrouver les résultats du moteur de référence OR-Tools (output/interactif/)."""
 from __future__ import annotations
 
 import json
@@ -26,7 +27,7 @@ def resultat():
 
 def test_planning_de_depart_est_la_reference_or_tools(resultat):
     r = resultat["reference"]
-    rapport = json.loads((RACINE / "output" / "rapport.json").read_text(encoding="utf-8"))
+    rapport = json.loads((RACINE / "output" / "interactif" / "rapport.json").read_text(encoding="utf-8"))
     assert r["anomalies"] == 0 and r["couverts"] == r["requis"] == rapport["indicateurs"]["affectations"]
     assert r["volants"] == rapport["indicateurs"]["par_origine"]["VOLANT"]
     assert r["supplementaires"] == rapport["indicateurs"]["quarts_supplementaires"]
@@ -35,7 +36,7 @@ def test_planning_de_depart_est_la_reference_or_tools(resultat):
 def test_replanification_identique_a_or_tools(resultat):
     r = resultat["replanification"]
     assert r["anomalies"] == 0 and r["trous"] == 0
-    replanif = pd.read_csv(RACINE / "output" / "replanif" / "planning.csv")
+    replanif = pd.read_csv(RACINE / "output" / "interactif" / "replanif" / "planning.csv")
     attendus = sorted(replanif[replanif.origine == "MODIFIE"][["matricule", "date", "quart", "poste"]].values.tolist())
     assert sorted(r["ajouts"]) == attendus
 
@@ -51,8 +52,8 @@ def test_generation_complete_sans_anomalie(resultat):
 
 def test_assistant_comprend_les_demandes(resultat):
     p = resultat["phrases"]
-    assert p["arret"] == {"type": "absence", "id": "E009", "absenceType": "ARRET", "debut": "2026-12-23", "fin": "2026-12-25"}
-    assert p["matricule"]["id"] == "E009"
+    assert p["arret"] == {"type": "absence", "id": "E007", "absenceType": "ARRET", "debut": "2026-12-23", "fin": "2026-12-25"}
+    assert p["matricule"]["id"] == "E007"
     assert p["rtt"]["absenceType"] == "RTT" and p["rtt"]["debut"] == "2026-12-26"
     assert p["dispo"] == {"type": "disponibles", "jour": "2026-12-15", "quart": "N", "poste": "CHEF_QUART"}
-    assert p["solde"] == {"type": "solde", "id": "E014"}
+    assert p["solde"] == {"type": "solde", "id": "E011"}

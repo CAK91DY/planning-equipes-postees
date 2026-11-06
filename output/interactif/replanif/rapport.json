@@ -1,0 +1,24 @@
+{
+  "statut": "OPTIMAL",
+  "temps_resolution_s": 0.6,
+  "objectif": 96.0,
+  "trous_couverture": 0,
+  "anomalies_controle": 0,
+  "indicateurs": {
+    "affectations": 252,
+    "par_origine": {
+      "INCHANGE": 248,
+      "MODIFIE": 4
+    },
+    "quarts_supplementaires": 0,
+    "modifications_vs_reference": 4,
+    "quarts_par_personne_min": 5,
+    "quarts_par_personne_max": 20,
+    "nuits_volants": {
+      "E016": 3,
+      "E017": 3
+    },
+    "demandes_repos_respectees": 3,
+    "demandes_repos_total": 3
+  }
+}

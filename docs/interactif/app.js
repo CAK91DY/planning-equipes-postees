@@ -5,7 +5,7 @@
   "use strict";
   const M = window.MoteurPlanning;
   const A = window.AssistantPlanning;
-  const CLE_STOCKAGE = "planning-postes-v1";
+  const CLE_STOCKAGE = "planning-postes-v2";   // v2 : équipe resserrée (17 personnes)
   const JOURS_COURTS = ["dim.", "lun.", "mar.", "mer.", "jeu.", "ven.", "sam."];
   const JOURS_LONGS = ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"];
   const LETTRES = ["D", "L", "M", "M", "J", "V", "S"];
@@ -262,13 +262,15 @@
         ${kpi("Dernier calcul", etat.dernierCalcul == null ? "OR-Tools" : `${nombre(etat.dernierCalcul, 1)} ms`, etat.dernierCalcul == null ? "planning de départ" : "dans le navigateur")}
       </div>
       <div class="carte">
-        <h2>${p ? "Planning proposé, non publié" : "Planning publié"}</h2>
-        <p class="note">Cliquez sur une case pour modifier un quart ou déclarer une absence. ${Object.entries(donnees.quarts).map(([q, d]) => `${q} = ${d.libelle.toLowerCase()} ${d.horaire}`).join(" · ")}.</p>
-        ${!p && anomalies.length ? `<p class="message-form erreur">Le planning publié comporte ${pluriel(anomalies.length, "anomalie")}. <button type="button" class="secondaire petit" data-action="corriger">Proposer une correction</button></p>` : ""}
-        <div class="outils-grille">
-          <button type="button" class="secondaire petit" data-action="replier-tout">Tout replier</button>
-          <button type="button" class="secondaire petit" data-action="deplier-tout">Tout déplier</button>
+        <div class="titre-grille">
+          <h2>${p ? "Planning proposé, non publié" : "Planning publié"}</h2>
+          <p class="note">Cliquez sur une case pour la modifier.</p>
+          <div class="outils-grille">
+            <button type="button" class="secondaire petit" data-action="replier-tout">Tout replier</button>
+            <button type="button" class="secondaire petit" data-action="deplier-tout">Tout déplier</button>
+          </div>
         </div>
+        ${!p && anomalies.length ? `<p class="message-form erreur">Le planning publié comporte ${pluriel(anomalies.length, "anomalie")}. <button type="button" class="secondaire petit" data-action="corriger">Proposer une correction</button></p>` : ""}
         <div class="defile" tabindex="0" role="region" aria-label="Planning par opérateur et par jour">
           <table class="grille"><thead><tr>${entete(ctx)}</tr></thead><tbody>${lignes(ctx, donnees, plan, ind, anomalies, modifies, affichees)}</tbody></table>
         </div>
@@ -284,7 +286,7 @@
       </div>`;
   }
   function entete(ctx) {
-    return `<th class="col-nom" scope="col">Opérateur</th>` + ctx.jours.map((j) => {
+    return `<th class="col-eq" scope="col" title="Équipe">Éq.</th><th class="col-nom" scope="col">Opérateur</th>` + ctx.jours.map((j) => {
       const js = M.jourSemaine(j);
       return `<th scope="col" class="${js === 0 || js === 6 ? "we" : ""}${js === 1 ? " lundi" : ""}" title="${e(dateLongue(j))}"><span>${LETTRES[js]}</span>${Number(j.slice(8))}</th>`;
     }).join("") + `<th class="col-total" scope="col" title="Quarts travaillés · dont nuits">Q · N</th>`;
@@ -295,9 +297,16 @@
     for (const eq of equipes) {
       const membres = donnees.collaborateurs.filter((x) => x.equipe === eq);
       const ouvert = !replies.has(eq);
-      html += `<tr class="groupe"><th class="col-nom" scope="rowgroup"><button type="button" class="bascule" data-action="replier" data-equipe="${e(eq)}" aria-expanded="${ouvert}">${eq === "VOLANT" ? "Volants" : `Équipe ${e(eq)}`}<small>${membres.length} pers.</small></button></th><td colspan="${ctx.jours.length + 1}"></td></tr>`;
-      if (!ouvert) continue;
-      for (const c of membres) {
+      const nomGroupe = eq === "VOLANT" ? "Volants" : `Équipe ${eq}`;
+      // Colonne d'équipe : lettre + bouton pour replier ou déplier le groupe
+      const bascule = `<button type="button" class="bascule" data-action="replier" data-equipe="${e(eq)}" aria-expanded="${ouvert}"
+        title="${ouvert ? "Replier" : "Déplier"} : ${e(nomGroupe)}" aria-label="${ouvert ? "Replier" : "Déplier"} ${e(nomGroupe)}">${eq === "VOLANT" ? "V" : e(eq)}</button>`;
+      html += `<tr class="espace"><td colspan="${ctx.jours.length + 3}"></td></tr>`;
+      if (!ouvert) {
+        html += `<tr class="replie"><th class="col-eq" scope="rowgroup">${bascule}</th><th class="col-nom" scope="row">${e(nomGroupe)}<small>${membres.length} pers. · replié</small></th><td colspan="${ctx.jours.length + 1}"></td></tr>`;
+        continue;
+      }
+      membres.forEach((c, rang) => {
         const cases = ctx.jours.map((j) => {
           const lundi = M.jourSemaine(j) === 1 ? " lundi" : "";
           const k = M.cle(c.id, j);
@@ -319,8 +328,9 @@
           return `<td class="case ${classe}${lundi}"><button type="button" data-action="case" data-id="${c.id}" data-jour="${j}" title="${e(bulle)}" aria-label="${e(bulle)}">${e(texte)}</button></td>`;
         }).join("");
         const pp = ind.parPersonne[c.id] || { quarts: 0, nuits: 0 };
-        html += `<tr><th class="col-nom" scope="row" title="${e(c.nom)} · ${e(c.id)} · ${e(donnees.postes[c.habilitations[0]])}">${e(c.nom)}<small>${e(c.id)} · ${e(ABREGE[c.habilitations[0]] || donnees.postes[c.habilitations[0]])}</small></th>${cases}<td class="col-total">${pp.quarts} · ${pp.nuits}</td></tr>`;
-      }
+        const colEquipe = rang === 0 ? `<th class="col-eq" scope="rowgroup" rowspan="${membres.length}">${bascule}</th>` : "";
+        html += `<tr>${colEquipe}<th class="col-nom" scope="row" title="${e(c.nom)} · ${e(c.id)} · ${e(donnees.postes[c.habilitations[0]])}">${e(c.nom)}<small>${e(c.id)} · ${e(ABREGE[c.habilitations[0]] || donnees.postes[c.habilitations[0]])}</small></th>${cases}<td class="col-total">${pp.quarts} · ${pp.nuits}</td></tr>`;
+      });
     }
     const couverture = ctx.jours.map((j) => {
       const lundi = M.jourSemaine(j) === 1 ? " lundi" : "";
@@ -330,7 +340,7 @@
       return manque ? `<td class="manque-cellule${lundi}" title="${pluriel(manque, "poste non couvert", "postes non couverts")}">−${manque}</td>`
         : `<td class="ok${lundi}" title="Tous les postes sont couverts">✓</td>`;
     }).join("");
-    return html + `<tr class="couverture"><th class="col-nom" scope="row">Postes couverts</th>${couverture}<td></td></tr>`;
+    return html + `<tr class="espace"><td colspan="${ctx.jours.length + 3}"></td></tr><tr class="couverture"><th class="col-eq"></th><th class="col-nom" scope="row">Postes couverts</th>${couverture}<td></td></tr>`;
   }
 
   function rendreAbsences() {

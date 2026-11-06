@@ -12,7 +12,9 @@
    Pour chaque poste à pourvoir, le moteur choisit au moindre coût :
      1. un volant habilité (charge et nuits réparties équitablement) ;
      2. un échange en chaîne (un collègue du même quart change de poste, un autre reprend le sien) ;
-     3. un titulaire sur un jour de repos du cycle (quart supplémentaire, dernier recours) ;
+     3. un titulaire sur un jour de repos du cycle (quart supplémentaire) ;
+     4. si la seule personne possible a atteint son plafond de quarts : un de ses autres quarts est
+        confié à quelqu'un d'autre pour lui libérer de la place ;
      sinon le poste est signalé non couvert, jamais caché.
    Un contrôle indépendant revérifie ensuite toutes les règles. */
 (function (global) {
@@ -79,7 +81,7 @@
   }
 
   // ------------------------------------------------------------------ faisabilité et coût d'une affectation
-  function peutTravailler(ctx, plan, id, jour, q, p) {
+  function peutTravailler(ctx, plan, id, jour, q, p, ignorerPlafond = false) {
     const R = ctx.donnees.regles;
     const c = ctx.collab[id];
     if (!c.habilitations.includes(p) || ctx.absent(id, jour) || plan.has(cle(id, jour))) return false;
@@ -89,7 +91,7 @@
     if (apres !== REPOS && ctx.interdit(q, apres)) return false;
     if (serie(ctx, plan, id, jour, (x) => x !== REPOS) > R.max_jours_consecutifs) return false;
     if (q === "N" && serie(ctx, plan, id, jour, (x) => x === "N") > R.max_nuits_consecutives) return false;
-    if (nbQuarts(plan, id) + 1 > R.max_quarts_horizon) return false;
+    if (!ignorerPlafond && nbQuarts(plan, id) + 1 > R.max_quarts_horizon) return false;
     return true;
   }
   function cout(ctx, plan, id, jour, q, p) {
@@ -134,7 +136,36 @@
       if (chaine.y) plan.set(cle(chaine.y, jour), chaine.ancien);
       return true;
     }
-    return false;
+    return libererPlafond(ctx, plan, jour, q, p);
+  }
+
+  /* Dernière manœuvre avant de déclarer un poste non couvert : une personne habilitée ne peut pas
+     prendre ce quart uniquement parce qu'elle a atteint le plafond de quarts sur l'horizon.
+     On confie alors un de ses autres quarts à quelqu'un d'autre pour lui libérer de la place. */
+  function libererPlafond(ctx, plan, jour, q, p) {
+    let meilleur = null;
+    for (const c of ctx.donnees.collaborateurs) {
+      if (!peutTravailler(ctx, plan, c.id, jour, q, p, true) || peutTravailler(ctx, plan, c.id, jour, q, p)) continue;
+      for (const [k, a] of [...plan.entries()]) {
+        if (!k.startsWith(c.id + "|")) continue;
+        const autreJour = k.split("|")[1];
+        plan.delete(k);
+        const remplacant = meilleurCandidat(ctx, plan, autreJour, a.q, a.p, c.id);
+        if (remplacant) {
+          plan.set(cle(remplacant.id, autreJour), a);
+          const possible = peutTravailler(ctx, plan, c.id, jour, q, p);
+          const v = cout(ctx, plan, c.id, jour, q, p) + remplacant.cout + 5;
+          plan.delete(cle(remplacant.id, autreJour));
+          if (possible && (!meilleur || v < meilleur.cout)) meilleur = { cout: v, id: c.id, k, a, autreJour, y: remplacant.id };
+        }
+        plan.set(k, a);
+      }
+    }
+    if (!meilleur) return false;
+    plan.delete(meilleur.k);
+    plan.set(cle(meilleur.y, meilleur.autreJour), meilleur.a);
+    plan.set(cle(meilleur.id, jour), { q, p });
+    return true;
   }
 
   function comblerTout(ctx, plan) {

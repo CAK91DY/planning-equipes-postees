@@ -26,24 +26,29 @@ et explicable.
 
 **Ouvrir :** https://cak91dy.github.io/planning-equipes-postees/interactif/ (dossier [`docs/interactif/`](docs/interactif/))
 
-Le même planning en 5×8, que le manager pilote directement dans son navigateur :
+Un planning en 5×8 que le manager pilote directement dans son navigateur. Pour qu'il tienne sur un
+seul écran, cette version utilise une équipe resserrée : 5 équipes de 3 (chef de quart, opérateur
+tableau, opérateur extérieur) et 2 volants, soit 17 personnes. Les règles sont les mêmes.
 
-- **point de départ** : le planning optimal calculé par OR-Tools (`output/planning.csv`) ;
+- **point de départ** : le planning optimal calculé par OR-Tools pour cette équipe
+  (`output/interactif/`, produit par `scripts/generer_donnees_interactif.py`) : 252 postes sur 252,
+  0 anomalie ;
 - **absences, congés payés, RTT, formations** : compteurs par personne, demandes en attente à étudier
   ou refuser, décompte en quarts planifiés ;
 - **assistant en français** : « Antoine est en arrêt du 23 au 25 décembre », « RTT pour Camille le
   26/12 », « Qui peut remplacer le chef de quart de nuit le 15 ? », « Combien de congés reste-t-il à
   Manon ? » ;
 - **recalcul en quelques millisecondes**, avec les mêmes règles que le moteur OR-Tools : volant d'abord,
-  puis échange entre collègues du même quart, puis quart supplémentaire en dernier recours. Un poste
-  impossible à couvrir est signalé, jamais caché ;
+  puis échange entre collègues du même quart, puis quart supplémentaire ; si la seule personne possible
+  a atteint son plafond de quarts, un de ses autres quarts est confié à un volant. Un poste impossible
+  à couvrir est signalé, jamais caché ;
 - **validation par le manager** : chaque changement est présenté comme une proposition (postes
   réaffectés, quarts supplémentaires, contrôle des règles), puis publié ou abandonné ;
-- modification case par case, correction automatique, effectifs et habilitations modifiables,
-  historique des décisions.
+- modification case par case, correction automatique, équipes repliables, effectifs et habilitations
+  modifiables, historique des décisions.
 
 Le moteur JavaScript de la page retrouve **exactement** la replanification d'OR-Tools sur le scénario de
-référence (test `tests/test_interactif.py`). La page tourne sans serveur ; les modifications restent dans
+démonstration, l'arrêt d'E007 du 23 au 25/12 (test `tests/test_interactif.py`). La page tourne sans serveur ; les modifications restent dans
 le navigateur de la personne qui l'utilise. L'assistant comprend des phrases simples par règles, sans IA
 externe ni clé d'API dans la page ; en production, ce rôle peut être confié à Claude via un serveur
 (`src/planning/assistant.py`). Prénoms et compteurs de congés sont des exemples.
