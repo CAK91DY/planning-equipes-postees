@@ -30,6 +30,11 @@
 
   let etat = null;
   let cible = null;
+  const CLE_REPLIES = "planning-postes-replies";
+  const ABREGE = { CHEF_QUART: "Chef", OP_TABLEAU: "Tab.", OP_EXTERIEUR: "Ext." };
+  let replies = new Set();
+  try { replies = new Set(JSON.parse(localStorage.getItem(CLE_REPLIES) || "[]")); } catch (err) { /* sans mémoire */ }
+  const memoriserReplies = () => { try { localStorage.setItem(CLE_REPLIES, JSON.stringify([...replies])); } catch (err) { /* rien */ } };
   const messages = [];
 
   const collab = (id) => etat.donnees.collaborateurs.find((c) => c.id === id);
@@ -249,17 +254,21 @@
     const postesParQuart = Object.values(donnees.besoins.M).reduce((s, x) => s + x, 0);
     $("#onglet-planning").innerHTML = `
       <div class="kpis" aria-label="Indicateurs clés">
-        ${kpi("Postes couverts", `${nombre(ind.couverts)} / ${nombre(ind.requis)}`, `${nbQuarts} quarts × ${postesParQuart} postes × ${ctx.jours.length} jours`, ind.couverts < ind.requis)}
+        ${kpi("Postes couverts", `${nombre(ind.couverts)} / ${nombre(ind.requis)}`, `${nbQuarts * postesParQuart} postes par jour`, ind.couverts < ind.requis)}
         ${kpi("Règles respectées", anomalies.length ? pluriel(anomalies.length, "anomalie") : "100 %", "contrôle indépendant", anomalies.length > 0)}
         ${kpi("Absences", nombre(nbAbs), `${pluriel(attente.length, "demande")} en attente`)}
         ${kpi("Remplacements", pluriel(ind.volants, "quart"), "tenus par les volants")}
         ${kpi("Quarts supplémentaires", nombre(ind.supplementaires), "sur des jours de repos")}
-        ${kpi("Dernier calcul", etat.dernierCalcul == null ? "OR-Tools" : `${nombre(etat.dernierCalcul, 1)} ms`, etat.dernierCalcul == null ? "planning optimisé de départ" : "dans le navigateur")}
+        ${kpi("Dernier calcul", etat.dernierCalcul == null ? "OR-Tools" : `${nombre(etat.dernierCalcul, 1)} ms`, etat.dernierCalcul == null ? "planning de départ" : "dans le navigateur")}
       </div>
       <div class="carte">
         <h2>${p ? "Planning proposé, non publié" : "Planning publié"}</h2>
         <p class="note">Cliquez sur une case pour modifier un quart ou déclarer une absence. ${Object.entries(donnees.quarts).map(([q, d]) => `${q} = ${d.libelle.toLowerCase()} ${d.horaire}`).join(" · ")}.</p>
         ${!p && anomalies.length ? `<p class="message-form erreur">Le planning publié comporte ${pluriel(anomalies.length, "anomalie")}. <button type="button" class="secondaire petit" data-action="corriger">Proposer une correction</button></p>` : ""}
+        <div class="outils-grille">
+          <button type="button" class="secondaire petit" data-action="replier-tout">Tout replier</button>
+          <button type="button" class="secondaire petit" data-action="deplier-tout">Tout déplier</button>
+        </div>
         <div class="defile" tabindex="0" role="region" aria-label="Planning par opérateur et par jour">
           <table class="grille"><thead><tr>${entete(ctx)}</tr></thead><tbody>${lignes(ctx, donnees, plan, ind, anomalies, modifies, affichees)}</tbody></table>
         </div>
@@ -278,14 +287,17 @@
     return `<th class="col-nom" scope="col">Opérateur</th>` + ctx.jours.map((j) => {
       const js = M.jourSemaine(j);
       return `<th scope="col" class="${js === 0 || js === 6 ? "we" : ""}${js === 1 ? " lundi" : ""}" title="${e(dateLongue(j))}"><span>${LETTRES[js]}</span>${Number(j.slice(8))}</th>`;
-    }).join("") + `<th class="col-total" scope="col">Quarts · nuits</th>`;
+    }).join("") + `<th class="col-total" scope="col" title="Quarts travaillés · dont nuits">Q · N</th>`;
   }
   function lignes(ctx, donnees, plan, ind, anomalies, modifies, affichees) {
     const equipes = [...new Set(donnees.collaborateurs.map((c) => c.equipe))].sort((a, b) => (a === "VOLANT") - (b === "VOLANT") || (a < b ? -1 : 1));
     let html = "";
     for (const eq of equipes) {
-      html += `<tr class="groupe"><th class="col-nom" scope="rowgroup">${eq === "VOLANT" ? "Volants (remplaçants)" : `Équipe ${e(eq)}`}</th><td colspan="${ctx.jours.length + 1}"></td></tr>`;
-      for (const c of donnees.collaborateurs.filter((x) => x.equipe === eq)) {
+      const membres = donnees.collaborateurs.filter((x) => x.equipe === eq);
+      const ouvert = !replies.has(eq);
+      html += `<tr class="groupe"><th class="col-nom" scope="rowgroup"><button type="button" class="bascule" data-action="replier" data-equipe="${e(eq)}" aria-expanded="${ouvert}">${eq === "VOLANT" ? "Volants" : `Équipe ${e(eq)}`}<small>${membres.length} pers.</small></button></th><td colspan="${ctx.jours.length + 1}"></td></tr>`;
+      if (!ouvert) continue;
+      for (const c of membres) {
         const cases = ctx.jours.map((j) => {
           const lundi = M.jourSemaine(j) === 1 ? " lundi" : "";
           const k = M.cle(c.id, j);
@@ -307,7 +319,7 @@
           return `<td class="case ${classe}${lundi}"><button type="button" data-action="case" data-id="${c.id}" data-jour="${j}" title="${e(bulle)}" aria-label="${e(bulle)}">${e(texte)}</button></td>`;
         }).join("");
         const pp = ind.parPersonne[c.id] || { quarts: 0, nuits: 0 };
-        html += `<tr><th class="col-nom" scope="row">${e(c.nom)}<small>${e(c.id)} · ${e(donnees.postes[c.habilitations[0]])}</small></th>${cases}<td class="col-total">${pp.quarts} · ${pp.nuits}</td></tr>`;
+        html += `<tr><th class="col-nom" scope="row" title="${e(c.nom)} · ${e(c.id)} · ${e(donnees.postes[c.habilitations[0]])}">${e(c.nom)}<small>${e(c.id)} · ${e(ABREGE[c.habilitations[0]] || donnees.postes[c.habilitations[0]])}</small></th>${cases}<td class="col-total">${pp.quarts} · ${pp.nuits}</td></tr>`;
       }
     }
     const couverture = ctx.jours.map((j) => {
@@ -584,6 +596,14 @@
     if (el.dataset.onglet) { afficherOnglet(el.dataset.onglet); return; }
     switch (el.dataset.action) {
       case "case": ouvrirCase(el.dataset.id, el.dataset.jour); break;
+      case "replier": {
+        const eq = el.dataset.equipe;
+        if (replies.has(eq)) replies.delete(eq); else replies.add(eq);
+        memoriserReplies(); rendrePlanning();
+        break;
+      }
+      case "replier-tout": etat.donnees.collaborateurs.forEach((c) => replies.add(c.equipe)); memoriserReplies(); rendrePlanning(); break;
+      case "deplier-tout": replies.clear(); memoriserReplies(); rendrePlanning(); break;
       case "valider-prop": validerProposition(); break;
       case "abandonner-prop": abandonnerProposition(); direAssistant("Proposition abandonnée : le planning publié reste inchangé."); break;
       case "corriger": {
