@@ -8,11 +8,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@500&display=swap">
-  <link rel="stylesheet" href="style.css?v=2026-11-06n">
-  <script src="donnees.js?v=2026-11-06n" defer></script>
-  <script src="moteur.js?v=2026-11-06n" defer></script>
-  <script src="assistant.js?v=2026-11-06n" defer></script>
-  <script src="app.js?v=2026-11-06n" defer></script>
+  <link rel="stylesheet" href="style.css?v=2026-11-06r">
+  <script src="donnees.js?v=2026-11-06r" defer></script>
+  <script src="moteur.js?v=2026-11-06r" defer></script>
+  <script src="assistant.js?v=2026-11-06r" defer></script>
+  <script src="app.js?v=2026-11-06r" defer></script>
 </head>
 <body>
   <div class="page">
@@ -26,7 +26,10 @@
       </div>
       <div class="entete-droite">
         <p class="signature">Réalisation : <b>Christophe</b>, Data Analyst BI</p>
-        <button type="button" class="lien-discret" id="reinitialiser">Revenir au planning initial</button>
+        <div class="actions-entete">
+          <button type="button" class="principal petit" data-action="ouvrir-ajout">+ Ajouter un collaborateur</button>
+          <button type="button" class="lien-discret" id="reinitialiser">Revenir au planning initial</button>
+        </div>
       </div>
     </header>
 

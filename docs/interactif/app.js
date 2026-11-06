@@ -444,17 +444,8 @@
       </div>
       <div class="carte">
         <h2>Ajouter un collaborateur</h2>
-        <p class="note">Un nouvel équipier suit le cycle de son équipe à partir de sa date d'arrivée, en doublure : il s'ajoute à l'effectif sans retirer personne. Un volant n'a pas de cycle : il est mobilisé pour les remplacements.</p>
-        <form id="form-collab" class="formulaire">
-          <label>Nom<input id="nc-nom" type="text" placeholder="Ex. Paul D." autocomplete="off"></label>
-          <label>Équipe<select id="nc-equipe">${["A", "B", "C", "D", "E"].map((x) => `<option value="${x}">Équipe ${x}</option>`).join("")}<option value="VOLANT">Volant (remplaçant)</option></select></label>
-          <label>Poste habituel<select id="nc-poste">${postes.map((p) => `<option value="${p}">${e(d.postes[p])}</option>`).join("")}</select></label>
-          <label>Arrivée le<input id="nc-arrivee" type="date" min="${contexte([]).jours[0]}" max="${contexte([]).jours[contexte([]).jours.length - 1]}" value="${contexte([]).jours[0]}"></label>
-          <label>Congés payés (j)<input id="nc-cp" type="number" min="0" max="60" value="0"></label>
-          <label>RTT (j)<input id="nc-rtt" type="number" min="0" max="30" value="0"></label>
-        </form>
-        <div class="boutons"><button type="submit" form="form-collab" class="principal"${bloque}>Ajouter et recalculer</button></div>
-        <p id="message-collab" class="message-form" aria-live="polite"></p>
+        <p class="note">Un nouvel équipier suit le cycle de son équipe à partir de sa date d'arrivée, en doublure. Un volant n'a pas de cycle : il est mobilisé pour les remplacements.</p>
+        <div class="boutons"><button type="button" class="principal" data-action="ouvrir-ajout"${bloque}>+ Ajouter un collaborateur</button></div>
       </div>
       <div class="carte">
         <h2>Règles garanties</h2>
@@ -490,6 +481,8 @@
   function ouvrirCase(id, jour) {
     const c = collab(id);
     cible = { id, jour };
+    fenetreMode = "case";
+    $("#fenetre").classList.remove("mode-ajout");
     $("#fenetre-titre").textContent = `${c.nom} (${c.id}) — ${dateLongue(jour)}`;
     if (etat.proposition) {
       $("#fenetre-corps").innerHTML = `<p>Une proposition est en attente. Validez-la ou abandonnez-la avant de modifier le planning.</p>`;
@@ -605,10 +598,8 @@
         return;
       }
       case "ajout_collaborateur": {
-        afficherOnglet("equipe");
-        const champ = $("#nc-nom");
-        if (champ) { champ.focus(); champ.scrollIntoView({ block: "center" }); }
-        direAssistant("Pour ajouter un collaborateur, remplissez le formulaire « Ajouter un collaborateur » (onglet Équipes et règles) : nom, équipe ou volant, poste habituel, date d'arrivée et compteurs. Je prépare ensuite le planning, que vous validez.");
+        ouvrirAjout();
+        direAssistant("J'ai ouvert le formulaire d'ajout : indiquez le nom, l'équipe ou volant, le poste, la date d'arrivée et les compteurs. Je prépare ensuite le planning, que vous validez.");
         return;
       }
       case "generer": {
@@ -632,6 +623,32 @@
   }
 
   // ------------------------------------------------------------------ ajout d'un collaborateur
+  let fenetreMode = null;                       // "case" ou "ajout" : contenu affiché dans la fenêtre
+  function ouvrirAjout() {
+    const d = etat.donnees, h = contexte([]).jours;
+    fenetreMode = "ajout";
+    $("#fenetre-titre").textContent = "Ajouter un collaborateur";
+    $("#fenetre-corps").innerHTML = etat.proposition
+      ? `<p>Une proposition est en attente. Validez-la ou abandonnez-la avant d'ajouter un collaborateur.</p>`
+      : `<p class="note">Un équipier suit le cycle de son équipe dès son arrivée, en doublure ; un volant est mobilisé pour les remplacements. Le planning est recalculé et présenté pour validation.</p>
+        <div class="formulaire formulaire-fenetre">
+          <label class="pleine">Nom<input id="nc-nom" type="text" placeholder="Ex. Paul D." autocomplete="off"></label>
+          <label>Équipe<select id="nc-equipe">${["A", "B", "C", "D", "E"].map((x) => `<option value="${x}">Équipe ${x}</option>`).join("")}<option value="VOLANT">Volant (remplaçant)</option></select></label>
+          <label>Poste habituel<select id="nc-poste">${Object.keys(d.postes).map((p) => `<option value="${p}">${e(d.postes[p])}</option>`).join("")}</select></label>
+          <label>Arrivée le<input id="nc-arrivee" type="date" min="${h[0]}" max="${h[h.length - 1]}" value="${h[0]}"></label>
+          <label>Congés payés (jours)<input id="nc-cp" type="number" min="0" max="60" value="0"></label>
+          <label>RTT (jours)<input id="nc-rtt" type="number" min="0" max="30" value="0"></label>
+        </div>
+        <p id="message-collab" class="message-form" aria-live="polite"></p>
+        <div class="boutons">
+          <button type="button" class="secondaire" data-action="fermer-fenetre">Annuler</button>
+          <button type="submit" value="ajouter" class="principal">Ajouter et recalculer</button>
+        </div>`;
+    $("#fenetre").classList.toggle("mode-ajout", !etat.proposition);
+    $("#fenetre").showModal();
+    const champ = $("#nc-nom");
+    if (champ) champ.focus();
+  }
   const HABILITATIONS_PAR_POSTE = { CHEF_QUART: ["CHEF_QUART", "OP_TABLEAU", "OP_EXTERIEUR"], OP_TABLEAU: ["OP_TABLEAU", "OP_EXTERIEUR"], OP_EXTERIEUR: ["OP_EXTERIEUR"] };
   function ajouterCollaborateur() {
     const zone = $("#message-collab");
@@ -661,6 +678,7 @@
       }
     }
     const libelle = `${nom} (${id}), ${etat.donnees.postes[poste].toLowerCase()}, ${equipe === "VOLANT" ? "volant" : `équipe ${equipe}`}`;
+    $("#fenetre").close();
     const p = proposer({ description: `arrivée de ${libelle} le ${jjmm(arrivee)}`, actions: [], absencesApres: absencesValidees(), donneesApres, planDirect: plan });
     journal(`Collaborateur préparé : ${libelle}, arrivée le ${jjmm(arrivee)}.`);
     direAssistant(equipe === "VOLANT"
@@ -691,6 +709,8 @@
     if (el.dataset.onglet) { afficherOnglet(el.dataset.onglet); return; }
     switch (el.dataset.action) {
       case "case": ouvrirCase(el.dataset.id, el.dataset.jour); break;
+      case "ouvrir-ajout": ouvrirAjout(); break;
+      case "fermer-fenetre": $("#fenetre").close(); break;
       case "replier": {
         const eq = el.dataset.equipe;
         if (replies.has(eq)) replies.delete(eq); else replies.add(eq);
@@ -762,7 +782,9 @@
   }
   document.addEventListener("submit", (ev) => {
     if (ev.target.id === "form-assistant") { ev.preventDefault(); envoyer(); return; }
-    if (ev.target.id === "form-collab") { ev.preventDefault(); ajouterCollaborateur(); return; }
+    if (ev.target.closest("#fenetre") && fenetreMode === "ajout" && !(ev.submitter && ev.submitter.value === "annuler")) {
+      ev.preventDefault(); ajouterCollaborateur(); return;
+    }
     if (ev.target.id === "form-absence") {
       ev.preventDefault();
       const prep = preparerAbsence($("#abs-collab").value, $("#abs-type").value, $("#abs-debut").value, $("#abs-fin").value, "manager");

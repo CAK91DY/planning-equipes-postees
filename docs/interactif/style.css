@@ -22,7 +22,7 @@ h1, h2, h3 { text-wrap: balance; }
 
 /* En-tête */
 .entete { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap;
-          background: var(--carte); border: 1px solid var(--bord); border-top: 4px solid var(--violet); padding: 14px 22px 13px; }
+          background: var(--carte); border: 1px solid var(--bord); border-top: 4px solid var(--violet); padding: 12px 22px 10px; }
 .surtitre { margin: 0 0 5px; color: var(--violet); font-size: 10.5px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; }
 h1 { margin: 0; font-size: 21px; font-weight: 650; letter-spacing: -.01em; line-height: 1.15; }
 .sous-titre { margin: 0; color: var(--texte2); font-size: 13px; }
@@ -227,3 +227,12 @@ body.confortable .absence button { font-size: 10px; }
 .signature { margin: 0; font-size: 12.5px; color: var(--texte2); }
 .signature b { color: var(--texte); font-weight: 600; }
 @media (max-width: 640px) { .entete-droite { align-items: flex-start; text-align: left; } }
+
+/* Bouton d'ajout dans la bande du haut et fenêtre d'ajout */
+.actions-entete { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; justify-content: flex-end; }
+.formulaire-fenetre { grid-template-columns: 1fr 1fr; }
+.formulaire-fenetre .pleine { grid-column: 1 / -1; }
+.formulaire-fenetre input, .formulaire-fenetre select { width: 100%; }
+dialog .boutons { justify-content: flex-end; }
+@media (max-width: 640px) { .actions-entete { justify-content: flex-start; } .formulaire-fenetre { grid-template-columns: 1fr; } }
+dialog.mode-ajout .fenetre-actions { display: none; }
