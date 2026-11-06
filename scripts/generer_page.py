@@ -354,8 +354,8 @@ def construire_page(d: dict, replanif: Path) -> str:
     <span class="badge">Données entièrement fictives</span>
   </header>
 
-  <p class="lien-demo"><b>Version interactive :</b> gestion des congés, RTT et absences, assistant en français,
-     recalcul et validation par le manager — <a href="velo/">ouvrir le planning interactif (commerce et atelier vélo)</a>.</p>
+  <p class="lien-demo"><b>Version interactive :</b> congés, RTT et absences, assistant en français,
+     recalcul en quelques millisecondes et validation par le manager — <a href="interactif/">ouvrir le planning interactif</a>.</p>
 
   <section class="kpis" aria-label="Indicateurs clés">{kpis}</section>
 

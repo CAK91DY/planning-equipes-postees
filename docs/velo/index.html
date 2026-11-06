@@ -2,76 +2,10 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Planning de l'équipe — commerce et atelier vélo</title>
-  <meta name="description" content="Exemple de planning automatisé et interactif : congés, RTT, absences, recalcul et validation par le manager. Données entièrement fictives.">
-  <link rel="stylesheet" href="style.css">
-  <!-- Aucune dépendance externe : tout fonctionne aussi en ouvrant le fichier directement -->
-  <script src="donnees.js" defer></script>
-  <script src="moteur.js" defer></script>
-  <script src="assistant.js" defer></script>
-  <script src="app.js" defer></script>
+  <meta http-equiv="refresh" content="0; url=../interactif/">
+  <title>Planning des équipes postées</title>
 </head>
 <body>
-  <div class="page">
-    <header class="bandeau">
-      <div>
-        <p class="surtitre">Exemple de planning automatisé · Commerce et atelier vélo</p>
-        <h1 id="titre">Planning de l'équipe</h1>
-      </div>
-      <div class="bandeau-droite">
-        <span class="badge">Données entièrement fictives</span>
-        <button type="button" class="lien-discret" id="reinitialiser">Réinitialiser la démo</button>
-      </div>
-    </header>
-
-    <nav class="onglets" role="tablist" aria-label="Sections">
-      <button type="button" role="tab" data-onglet="planning" aria-selected="true">Planning</button>
-      <button type="button" role="tab" data-onglet="absences" aria-selected="false">Absences et congés <span class="pastille" id="nb-attente" hidden></span></button>
-      <button type="button" role="tab" data-onglet="equipe" aria-selected="false">Équipe et règles</button>
-      <button type="button" role="tab" data-onglet="historique" aria-selected="false">Historique</button>
-    </nav>
-
-    <div class="mise-en-page">
-      <main id="contenu">
-        <section id="proposition" class="proposition" hidden aria-live="polite"></section>
-        <section id="onglet-planning" class="onglet"></section>
-        <section id="onglet-absences" class="onglet" hidden></section>
-        <section id="onglet-equipe" class="onglet" hidden></section>
-        <section id="onglet-historique" class="onglet" hidden></section>
-      </main>
-
-      <aside class="assistant" aria-label="Assistant de planification">
-        <div class="assistant-entete">
-          <h2>Assistant de planification</h2>
-          <p>Écrivez une demande en français : le planning est recalculé, vous validez.</p>
-        </div>
-        <div id="messages" class="messages" aria-live="polite"></div>
-        <div class="exemples" id="exemples"></div>
-        <form id="form-assistant" class="saisie">
-          <label for="question" class="visuellement-cache">Votre demande</label>
-          <input id="question" type="text" autocomplete="off" placeholder="Ex. Karim est malade du 15 au 17 décembre">
-          <button type="submit">Envoyer</button>
-        </form>
-        <p class="note-ia">Démo : l'assistant comprend les phrases simples, sans IA externe. En production, il s'appuie sur Claude via un serveur ; il propose, le manager valide.</p>
-      </aside>
-    </div>
-
-    <footer class="pied">
-      Moteur de planification exécuté dans le navigateur (règles dures, puis recalcul qui modifie le moins possible le planning publié)
-      et contrôle indépendant des règles. Les modifications sont enregistrées dans ce navigateur uniquement.
-      Règles, effectifs et compteurs fictifs, à adapter à l'organisation réelle. · Réalisation : Christophe, Data Analyst BI
-    </footer>
-  </div>
-
-  <dialog id="fenetre" aria-labelledby="fenetre-titre">
-    <form method="dialog" id="fenetre-form">
-      <h2 id="fenetre-titre"></h2>
-      <div id="fenetre-corps"></div>
-      <div class="fenetre-actions">
-        <button type="submit" value="annuler" class="secondaire">Fermer</button>
-      </div>
-    </form>
-  </dialog>
+  <p>Cette page a été déplacée : <a href="../interactif/">planning des équipes postées</a>.</p>
 </body>
 </html>

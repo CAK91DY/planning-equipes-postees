@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Planning des équipes postées</title>
+  <meta name="description" content="Planning des équipes postées en 5×8 : congés, RTT, absences, assistant, recalcul et validation par le manager.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@500&display=swap">
+  <link rel="stylesheet" href="style.css">
+  <script src="donnees.js" defer></script>
+  <script src="moteur.js" defer></script>
+  <script src="assistant.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <div class="page">
+    <header class="entete">
+      <div>
+        <p class="surtitre">Planification · Production en continu</p>
+        <h1>Planning des équipes postées</h1>
+        <p class="sous-titre" id="periode"></p>
+      </div>
+      <button type="button" class="lien-discret" id="reinitialiser">Revenir au planning initial</button>
+    </header>
+
+    <nav class="onglets" role="tablist" aria-label="Sections">
+      <button type="button" role="tab" data-onglet="planning" aria-selected="true">Planning</button>
+      <button type="button" role="tab" data-onglet="absences" aria-selected="false">Absences et congés <span class="pastille" id="nb-attente" hidden></span></button>
+      <button type="button" role="tab" data-onglet="equipe" aria-selected="false">Équipes et règles</button>
+      <button type="button" role="tab" data-onglet="historique" aria-selected="false">Historique</button>
+    </nav>
+
+    <div class="mise-en-page">
+      <main id="contenu">
+        <section id="proposition" class="proposition" hidden aria-live="polite"></section>
+        <section id="onglet-planning" class="onglet"></section>
+        <section id="onglet-absences" class="onglet" hidden></section>
+        <section id="onglet-equipe" class="onglet" hidden></section>
+        <section id="onglet-historique" class="onglet" hidden></section>
+      </main>
+
+      <aside class="assistant" aria-label="Assistant de planification">
+        <div class="assistant-entete">
+          <h2>Assistant de planification</h2>
+          <p>Décrivez la situation en une phrase. L'assistant prépare une proposition ; vous décidez.</p>
+        </div>
+        <div id="messages" class="messages" aria-live="polite"></div>
+        <form id="form-assistant" class="saisie">
+          <label for="question">Votre demande</label>
+          <textarea id="question" rows="4" placeholder="Ex. Antoine est en arrêt du 23 au 25 décembre"></textarea>
+          <div class="saisie-pied">
+            <span class="astuce-clavier">Entrée pour envoyer · Maj + Entrée pour aller à la ligne</span>
+            <button type="submit" class="principal">Envoyer</button>
+          </div>
+        </form>
+        <div class="exemples" id="exemples" aria-label="Exemples de demandes"></div>
+      </aside>
+    </div>
+
+    <footer class="pied">
+      Calcul dans le navigateur : règles de sécurité et de temps de travail garanties, recalcul qui modifie le moins possible
+      le planning publié, contrôle indépendant de chaque règle. Prototype · noms et compteurs d'exemple · Réalisation : Christophe, Data Analyst BI
+    </footer>
+  </div>
+
+  <dialog id="fenetre" aria-labelledby="fenetre-titre">
+    <form method="dialog">
+      <h2 id="fenetre-titre"></h2>
+      <div id="fenetre-corps"></div>
+      <div class="fenetre-actions"><button type="submit" value="annuler" class="secondaire">Fermer</button></div>
+    </form>
+  </dialog>
+</body>
+</html>

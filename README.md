@@ -24,28 +24,29 @@ et explicable.
 
 ## Version interactive : congés, RTT, absences et assistant
 
-**Ouvrir :** https://cak91dy.github.io/planning-equipes-postees/velo/ (dossier [`docs/velo/`](docs/velo/))
+**Ouvrir :** https://cak91dy.github.io/planning-equipes-postees/interactif/ (dossier [`docs/interactif/`](docs/interactif/))
 
-Un second exemple, pour une équipe de commerce avec atelier (7 collaborateurs, ouvert du lundi au
-samedi en deux créneaux), montre un **planning vivant** que le manager pilote directement :
+Le même planning en 5×8, que le manager pilote directement dans son navigateur :
 
-- **génération automatique** du planning à partir des règles : effectif minimum par créneau et par
-  poste, contrats, habilitations, fermetures et jours fériés ;
-- **absences, congés payés, RTT, formations**, avec des compteurs, des demandes en attente à valider
-  ou refuser, et le décompte en jours ouvrés ;
-- un **assistant en français** : « Karim est malade du 15 au 17 décembre », « RTT pour Sofia le
-  22/12 », « Qui est disponible le 19 pour l'atelier ? », « Combien de congés reste-t-il à Chloé ? » ;
-- un **recalcul en quelques millisecondes**, qui modifie le moins possible le planning publié.
-  Chaque changement passe par une **proposition** que le manager valide ou abandonne, avec les
-  changements, les heures supplémentaires, les postes non couverts et le contrôle des règles ;
-- des modifications manuelles case par case, une correction automatique et un historique des
-  décisions.
+- **point de départ** : le planning optimal calculé par OR-Tools (`output/planning.csv`) ;
+- **absences, congés payés, RTT, formations** : compteurs par personne, demandes en attente à étudier
+  ou refuser, décompte en quarts planifiés ;
+- **assistant en français** : « Antoine est en arrêt du 23 au 25 décembre », « RTT pour Camille le
+  26/12 », « Qui peut remplacer le chef de quart de nuit le 15 ? », « Combien de congés reste-t-il à
+  Manon ? » ;
+- **recalcul en quelques millisecondes**, avec les mêmes règles que le moteur OR-Tools : volant d'abord,
+  puis échange entre collègues du même quart, puis quart supplémentaire en dernier recours. Un poste
+  impossible à couvrir est signalé, jamais caché ;
+- **validation par le manager** : chaque changement est présenté comme une proposition (postes
+  réaffectés, quarts supplémentaires, contrôle des règles), puis publié ou abandonné ;
+- modification case par case, correction automatique, effectifs et habilitations modifiables,
+  historique des décisions.
 
-Cette page tourne entièrement dans le navigateur, sans serveur ; les modifications restent dans le
-navigateur de la personne qui l'utilise. L'assistant de démonstration comprend des phrases simples,
-**sans IA externe** : aucune clé d'API ne doit figurer dans une page publique. En production, il
-s'appuie sur Claude via un serveur (`src/planning/assistant.py`). Le moteur JavaScript de la page
-est une heuristique simplifiée ; le moteur de référence reste OR-Tools.
+Le moteur JavaScript de la page retrouve **exactement** la replanification d'OR-Tools sur le scénario de
+référence (test `tests/test_interactif.py`). La page tourne sans serveur ; les modifications restent dans
+le navigateur de la personne qui l'utilise. L'assistant comprend des phrases simples par règles, sans IA
+externe ni clé d'API dans la page ; en production, ce rôle peut être confié à Claude via un serveur
+(`src/planning/assistant.py`). Prénoms et compteurs de congés sont des exemples.
 
 ## Résultats (planning de référence, 7 décembre 2026 → 3 janvier 2027)
 
@@ -126,8 +127,8 @@ data/*.csv ──► solveur OR-Tools ──► output/planning.csv ──► co
 | `output/replanif/` | démonstration de replanification (données du scénario et résultat) |
 | `scripts/generer_page.py` | produit la page `docs/index.html` à partir des fichiers de sortie |
 | `scripts/demo_replanification.py` | rejoue le scénario de l'absence de E009 |
-| `docs/velo/` | version interactive : moteur (`moteur.js`), assistant (`assistant.js`), interface (`app.js`), données fictives (`donnees.js`) |
-| `tests/` | 10 tests automatiques : règles, replanification, renfort ponctuel, assistant, page, version interactive (avec Node.js) |
+| `docs/interactif/` | version interactive : moteur (`moteur.js`), assistant (`assistant.js`), interface (`app.js`), données (`donnees.js`, produit par `scripts/generer_donnees_interactif.py`) |
+| `tests/` | 12 tests automatiques : règles, replanification, renfort ponctuel, assistant, page, version interactive (avec Node.js) |
 
 **Répartition des rôles.** Le solveur calcule et garantit les règles. Le contrôle vérifie.
 L'assistant IA comprend la demande et explique. **Le manager décide.**

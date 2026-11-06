@@ -1,13 +1,12 @@
-/* Assistant de planification — compréhension de phrases simples en français.
+/* Assistant de planification — compréhension de demandes écrites en français.
 
-   Version de démonstration : l'analyse se fait par règles, dans le navigateur, sans appel
-   à une IA externe (aucune clé d'API ne doit figurer dans une page publique).
-   En production, la même interface s'appuie sur Claude via un serveur : voir
-   src/planning/assistant.py. Dans les deux cas, l'assistant PROPOSE ; le manager valide.
+   L'analyse se fait par règles, dans le navigateur : aucune donnée ne sort du poste et aucune clé
+   d'API ne figure dans la page. Le même rôle peut être confié à Claude via un serveur
+   (src/planning/assistant.py). Dans tous les cas, l'assistant PROPOSE ; le manager valide.
 
    interpreter(texte, donnees) renvoie une intention :
      { type: "absence", id, absenceType, debut, fin }
-     { type: "disponibles", jour, role }
+     { type: "disponibles", jour, quart, poste }
      { type: "solde", id }
      { type: "planning_personne", id }
      { type: "generer" }
@@ -67,8 +66,22 @@
   function extrairePersonne(t, donnees) {
     for (const c of donnees.collaborateurs) {
       const prenom = normaliser(c.nom.split(" ")[0]);
-      if (new RegExp(`\\b${prenom}\\b`).test(t) || new RegExp(`\\b${c.id.toLowerCase()}\\b`).test(t)) return c.id;
+      const numero = Number(c.id.slice(1));                                 // « E009 », « e9 », « opérateur 9 »
+      if (new RegExp(`\\b${prenom}\\b`).test(t) || new RegExp(`\\b${c.id.toLowerCase()}\\b`).test(t) ||
+          new RegExp(`\\b(e|matricule |operateur )0*${numero}\\b`).test(t)) return c.id;
     }
+    return null;
+  }
+  function extrairePoste(t) {
+    if (/\bchef\b/.test(t)) return "CHEF_QUART";
+    if (/\b(tableau|panneau|salle de controle|console)\b/.test(t)) return "OP_TABLEAU";
+    if (/\b(exterieur|terrain|ronde|rondier)\b/.test(t)) return "OP_EXTERIEUR";
+    return null;
+  }
+  function extraireQuart(t) {
+    if (/\bnuit\b/.test(t)) return "N";
+    if (/\bapres[ -]?midi\b/.test(t)) return "A";
+    if (/\bmatin\b/.test(t)) return "M";
     return null;
   }
 
@@ -89,10 +102,9 @@
     if (/\b(genere|generer|cree|creer|refais|refaire|recalcule|recalculer|construis|construire)\b.*\bplanning\b/.test(t)) {
       return { type: "generer" };
     }
-    if (/\b(qui|quelqu un)\b.*\b(dispo|disponibles?|libres?|remplacer|peut venir)\b/.test(t)) {
-      const role = /\b(atelier|meca|mecanicien|mecanique|reparation)\b/.test(t) ? "MECA"
-        : /\b(magasin|vente|vendeur|vendeuse|caisse)\b/.test(t) ? "VENTE" : null;
-      return dates ? { type: "disponibles", jour: dates.debut, role } : { type: "aide", raison: "date" };
+    if (/\b(qui|quelqu un)\b.*\b(dispo|disponibles?|libres?|remplacer|peut venir|peut prendre)\b/.test(t)) {
+      return dates ? { type: "disponibles", jour: dates.debut, quart: extraireQuart(t), poste: extrairePoste(t) }
+        : { type: "aide", raison: "date" };
     }
     if (id && /\b(solde|soldes|reste|restant|restants|combien|compteur|compteurs)\b/.test(t)) {
       return { type: "solde", id };
