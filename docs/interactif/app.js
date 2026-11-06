@@ -41,7 +41,9 @@
   const memoriserReplies = () => { try { localStorage.setItem(CLE_REPLIES, JSON.stringify([...replies])); } catch (err) { /* rien */ } };
   const messages = [];
 
-  const collab = (id) => etat.donnees.collaborateurs.find((c) => c.id === id);
+  // Cherche aussi dans la proposition en cours (un nouvel arrivant n'est pas encore publié)
+  const collab = (id) => etat.donnees.collaborateurs.find((c) => c.id === id) ||
+    (etat.proposition && etat.proposition.donnees.collaborateurs.find((c) => c.id === id));
   const typeAbs = (t) => etat.donnees.types_absence[t];
   const quartTxt = (q) => `${etat.donnees.quarts[q].libelle.toLowerCase()} (${etat.donnees.quarts[q].horaire})`;
   const posteTxt = (p) => etat.donnees.postes[p].toLowerCase();
@@ -99,8 +101,9 @@
   const prochainNumero = () => Math.max(0, ...etat.donnees.absences.map((a) => a.num)) + 1;
 
   // ------------------------------------------------------------------ propositions
-  function proposer({ description, actions, absencesApres, regenerer = false, donneesApres = etat.donnees }) {
-    const res = regenerer ? M.generer(donneesApres, absencesApres) : M.replanifier(donneesApres, etat.publie, absencesApres);
+  function proposer({ description, actions, absencesApres, regenerer = false, donneesApres = etat.donnees, planDirect = null }) {
+    const res = planDirect ? { plan: planDirect, duree_ms: 0 }
+      : regenerer ? M.generer(donneesApres, absencesApres) : M.replanifier(donneesApres, etat.publie, absencesApres);
     const anomalies = M.controler(donneesApres, res.plan, absencesApres);
     const ind = M.indicateurs(donneesApres, res.plan, absencesApres);
     const avant = M.indicateurs(etat.donnees, etat.publie, absencesValidees());
@@ -130,6 +133,18 @@
     }
     return [...postes.values()].sort((x, y) => (x.jour < y.jour ? -1 : x.jour > y.jour ? 1 : "MAN".indexOf(x.q) - "MAN".indexOf(y.q)));
   }
+  // « 3 postes réaffectés », « 12 quarts ajoutés »… selon la nature des changements
+  function libelleChangements(liste) {
+    const reaff = liste.filter((c) => c.avant.length && c.apres.length).length;
+    const ajouts = liste.filter((c) => !c.avant.length && c.apres.length).length;
+    const retraits = liste.filter((c) => c.avant.length && !c.apres.length).length;
+    const morceaux = [];
+    if (reaff) morceaux.push(pluriel(reaff, "poste réaffecté", "postes réaffectés"));
+    if (ajouts) morceaux.push(pluriel(ajouts, "quart ajouté", "quarts ajoutés"));
+    if (retraits) morceaux.push(pluriel(retraits, "poste libéré", "postes libérés"));
+    return morceaux.join(", ") || "aucun changement";
+  }
+  const duree = (ms) => (ms < 0.1 ? "< 0,1 ms" : `${nombre(ms, 1)} ms`);
   const decrireNoms = (ids) => ids.map((id) => `${collab(id).nom} (${id})`).join(", ") || "personne";
   function decrireChangement(c) {
     const qui = c.avant.length && c.apres.length ? `${decrireNoms(c.avant)} → ${decrireNoms(c.apres)}`
@@ -149,7 +164,7 @@
       }
     }
     etat.publie = p.plan;
-    journal(`Publié : ${p.description} — ${pluriel(p.changements.length, "poste réaffecté", "postes réaffectés")}, ${pluriel(p.anomalies.length, "anomalie")}.`);
+    journal(`Publié : ${p.description} — ${libelleChangements(p.changements)}, ${pluriel(p.anomalies.length, "anomalie")}.`);
     etat.proposition = null;
     enregistrer();
     rendreTout();
@@ -223,12 +238,12 @@
       <p class="etiquette">Proposition à valider</p>
       <h2>${e(p.description.charAt(0).toUpperCase() + p.description.slice(1))}</h2>
       <ul class="chiffres">
-        <li><b>${p.changements.length}</b> ${p.changements.length > 1 ? "postes réaffectés" : "poste réaffecté"}</li>
+        <li><b>${e(libelleChangements(p.changements))}</b></li>
         <li>Volants : <b>${signe(p.deltaVolants)}</b> quart(s)</li>
         <li>Quarts supplémentaires : <b>${signe(p.deltaSup)}</b></li>
         <li class="${p.trous ? "manque" : ""}">Postes non couverts : <b>${p.trous}</b></li>
         <li>Contrôle des règles : <b>${p.anomalies.length ? pluriel(p.anomalies.length, "anomalie") : "conforme"}</b></li>
-        <li>Calcul : <b>${nombre(p.duree, 1)} ms</b></li>
+        <li>Calcul : <b>${duree(p.duree)}</b></li>
       </ul>
       <ul class="changements">${p.changements.slice(0, 30).map((c) => { const d = decrireChangement(c); return `<li><span class="quand">${e(d.quand)}</span><span>${e(d.quoi)}</span></li>`; }).join("") || "<li><span></span><span>Aucun quart à modifier.</span></li>"}</ul>
       ${p.changements.length > 30 ? `<p class="note">… et ${p.changements.length - 30} autre(s), visibles en pointillés dans le planning.</p>` : ""}
@@ -263,19 +278,19 @@
         ${kpi("Absences", nombre(nbAbs), `${pluriel(attente.length, "demande")} en attente`)}
         ${kpi("Remplacements", pluriel(ind.volants, "quart"), "tenus par les volants")}
         ${kpi("Quarts supplémentaires", nombre(ind.supplementaires), "sur des jours de repos")}
-        ${kpi("Dernier calcul", etat.dernierCalcul == null ? "OR-Tools" : `${nombre(etat.dernierCalcul, 1)} ms`, etat.dernierCalcul == null ? "planning de départ" : "dans le navigateur")}
+        ${kpi("Dernier calcul", etat.dernierCalcul == null ? "OR-Tools" : duree(etat.dernierCalcul), etat.dernierCalcul == null ? "planning de départ" : "dans le navigateur")}
       </div>
       <div class="carte">
         <div class="titre-grille">
           <h2>${p ? "Planning proposé, non publié" : "Planning publié"}</h2>
-          <p class="note">Cliquez sur une case pour la modifier.</p>
+          <p class="note">Une case se modifie d'un clic · <b>CP</b> congés · <b>RTT</b> · <b>Form.</b> formation · <b>Abs.</b> arrêt</p>
           <div class="outils-grille">
             <span class="groupe-boutons" role="group" aria-label="Affichage">
               <button type="button" class="secondaire petit" data-action="densite" data-valeur="compact" aria-pressed="${densite === "compact"}">Compact</button>
               <button type="button" class="secondaire petit" data-action="densite" data-valeur="confortable" aria-pressed="${densite === "confortable"}">Confortable</button>
             </span>
-            <button type="button" class="secondaire petit" data-action="replier-tout">Tout replier</button>
-            <button type="button" class="secondaire petit" data-action="deplier-tout">Tout déplier</button>
+            <button type="button" class="secondaire petit" data-action="replier-tout" title="Replier toutes les équipes">Replier</button>
+            <button type="button" class="secondaire petit" data-action="deplier-tout" title="Déplier toutes les équipes">Déplier</button>
           </div>
         </div>
         ${!p && anomalies.length ? `<p class="message-form erreur">Le planning publié comporte ${pluriel(anomalies.length, "anomalie")}. <button type="button" class="secondaire petit" data-action="corriger">Proposer une correction</button></p>` : ""}
@@ -428,6 +443,20 @@
         <p id="message-equipe" class="message-form" aria-live="polite"></p>
       </div>
       <div class="carte">
+        <h2>Ajouter un collaborateur</h2>
+        <p class="note">Un nouvel équipier suit le cycle de son équipe à partir de sa date d'arrivée, en doublure : il s'ajoute à l'effectif sans retirer personne. Un volant n'a pas de cycle : il est mobilisé pour les remplacements.</p>
+        <form id="form-collab" class="formulaire">
+          <label>Nom<input id="nc-nom" type="text" placeholder="Ex. Paul D." autocomplete="off"></label>
+          <label>Équipe<select id="nc-equipe">${["A", "B", "C", "D", "E"].map((x) => `<option value="${x}">Équipe ${x}</option>`).join("")}<option value="VOLANT">Volant (remplaçant)</option></select></label>
+          <label>Poste habituel<select id="nc-poste">${postes.map((p) => `<option value="${p}">${e(d.postes[p])}</option>`).join("")}</select></label>
+          <label>Arrivée le<input id="nc-arrivee" type="date" min="${contexte([]).jours[0]}" max="${contexte([]).jours[contexte([]).jours.length - 1]}" value="${contexte([]).jours[0]}"></label>
+          <label>Congés payés (j)<input id="nc-cp" type="number" min="0" max="60" value="0"></label>
+          <label>RTT (j)<input id="nc-rtt" type="number" min="0" max="30" value="0"></label>
+        </form>
+        <div class="boutons"><button type="submit" form="form-collab" class="principal"${bloque}>Ajouter et recalculer</button></div>
+        <p id="message-collab" class="message-form" aria-live="polite"></p>
+      </div>
+      <div class="carte">
         <h2>Règles garanties</h2>
         <ul class="regles">
           <li>Cycle 5×8 : ${e(d.cycle.motif.join(" "))} (R = repos), décalé de 2 jours d'une équipe à l'autre.</li>
@@ -508,8 +537,8 @@
   function resumer(p) {
     const lignes = p.changements.slice(0, 6).map((c) => { const d = decrireChangement(c); return `• ${d.quand} — ${d.quoi}`; });
     if (p.changements.length > 6) lignes.push(`• … et ${p.changements.length - 6} autre(s)`);
-    return `${pluriel(p.changements.length, "poste réaffecté", "postes réaffectés")} :\n${lignes.join("\n") || "• aucun quart à modifier"}\n` +
-      `Quarts supplémentaires : ${p.deltaSup > 0 ? "+" : ""}${p.deltaSup} · postes non couverts : ${p.trous} · calcul en ${nombre(p.duree, 1)} ms.\n` +
+    return `${libelleChangements(p.changements)} :\n${lignes.join("\n") || "• aucun quart à modifier"}\n` +
+      `Quarts supplémentaires : ${p.deltaSup > 0 ? "+" : ""}${p.deltaSup} · postes non couverts : ${p.trous} · calcul en ${duree(p.duree)}.\n` +
       (p.anomalies.length ? "Le contrôle signale des points à traiter avant publication." : "Toutes les règles sont respectées.");
   }
 
@@ -575,6 +604,13 @@
         direAssistant(`Planning de ${c.nom} (${c.id}, ${nomEquipe(c.equipe)}) — M matin, A après-midi, N nuit :\n${semaines.join("\n")}`);
         return;
       }
+      case "ajout_collaborateur": {
+        afficherOnglet("equipe");
+        const champ = $("#nc-nom");
+        if (champ) { champ.focus(); champ.scrollIntoView({ block: "center" }); }
+        direAssistant("Pour ajouter un collaborateur, remplissez le formulaire « Ajouter un collaborateur » (onglet Équipes et règles) : nom, équipe ou volant, poste habituel, date d'arrivée et compteurs. Je prépare ensuite le planning, que vous validez.");
+        return;
+      }
       case "generer": {
         const p = proposer({ description: "nouveau planning calculé à partir du cycle et des règles", actions: [], absencesApres: absencesValidees(), regenerer: true });
         direAssistant(`Nouveau planning calculé à partir du cycle 5×8, des règles et des absences validées.\n${resumer(p)}`, BOUTONS);
@@ -593,6 +629,43 @@
     const essai = new Map(etat.publie);
     essai.set(M.cle(id, jour), { q, p });
     return !M.controler(etat.donnees, essai, absencesValidees()).some((a) => a.id === id);
+  }
+
+  // ------------------------------------------------------------------ ajout d'un collaborateur
+  const HABILITATIONS_PAR_POSTE = { CHEF_QUART: ["CHEF_QUART", "OP_TABLEAU", "OP_EXTERIEUR"], OP_TABLEAU: ["OP_TABLEAU", "OP_EXTERIEUR"], OP_EXTERIEUR: ["OP_EXTERIEUR"] };
+  function ajouterCollaborateur() {
+    const zone = $("#message-collab");
+    const dire = (t, c = "erreur") => { zone.textContent = t; zone.className = `message-form ${c}`; };
+    if (etat.proposition) { dire("Validez ou abandonnez d'abord la proposition en cours."); return; }
+    const nom = $("#nc-nom").value.trim();
+    const equipe = $("#nc-equipe").value, poste = $("#nc-poste").value, arrivee = $("#nc-arrivee").value;
+    const cp = Number($("#nc-cp").value), rtt = Number($("#nc-rtt").value);
+    if (!nom) { dire("Indiquez le nom du collaborateur."); return; }
+    if (etat.donnees.collaborateurs.some((c) => c.nom.toLowerCase() === nom.toLowerCase())) { dire(`${nom} fait déjà partie de l'équipe.`); return; }
+    if (!Number.isFinite(cp) || !Number.isFinite(rtt) || cp < 0 || rtt < 0) { dire("Les compteurs doivent être des nombres positifs."); return; }
+    const h = contexte([]).jours;
+    if (!arrivee || arrivee < h[0] || arrivee > h[h.length - 1]) { dire(`La date d'arrivée doit être comprise entre le ${jjmm(h[0])} et le ${jjmm(h[h.length - 1])}.`); return; }
+    const numero = Math.max(...etat.donnees.collaborateurs.map((c) => Number(c.id.slice(1)))) + 1;
+    const id = `E${String(numero).padStart(3, "0")}`;
+    const nouveau = { id, nom, equipe, habilitations: HABILITATIONS_PAR_POSTE[poste], soldes: { CP: cp, RTT: rtt } };
+    const donneesApres = copie(etat.donnees);
+    donneesApres.collaborateurs.push(nouveau);
+    // Un équipier suit le cycle de son équipe dès son arrivée (en doublure) ; un volant reste disponible
+    const plan = new Map(etat.publie);
+    const ctx = M.preparer(donneesApres, absencesValidees());
+    let quarts = 0;
+    if (equipe !== "VOLANT") {
+      for (const j of ctx.jours) {
+        const q = ctx.quartPrevu(id, j);
+        if (j >= arrivee && q !== M.REPOS) { plan.set(M.cle(id, j), { q, p: poste }); quarts++; }
+      }
+    }
+    const libelle = `${nom} (${id}), ${etat.donnees.postes[poste].toLowerCase()}, ${equipe === "VOLANT" ? "volant" : `équipe ${equipe}`}`;
+    const p = proposer({ description: `arrivée de ${libelle} le ${jjmm(arrivee)}`, actions: [], absencesApres: absencesValidees(), donneesApres, planDirect: plan });
+    journal(`Collaborateur préparé : ${libelle}, arrivée le ${jjmm(arrivee)}.`);
+    direAssistant(equipe === "VOLANT"
+      ? `${nom} rejoint les volants : aucun quart n'est fixé d'avance ; il sera proposé en priorité pour les remplacements.\n${resumer(p)}`
+      : `${nom} rejoint l'équipe ${equipe} : ${pluriel(quarts, "quart")} sur le cycle à partir du ${jjmm(arrivee)}, en doublure (l'effectif de l'équipe passe à ${donneesApres.collaborateurs.filter((c) => c.equipe === equipe).length}).\n${resumer(p)}`, BOUTONS);
   }
 
   // ------------------------------------------------------------------ actions
@@ -689,6 +762,7 @@
   }
   document.addEventListener("submit", (ev) => {
     if (ev.target.id === "form-assistant") { ev.preventDefault(); envoyer(); return; }
+    if (ev.target.id === "form-collab") { ev.preventDefault(); ajouterCollaborateur(); return; }
     if (ev.target.id === "form-absence") {
       ev.preventDefault();
       const prep = preparerAbsence($("#abs-collab").value, $("#abs-type").value, $("#abs-debut").value, $("#abs-fin").value, "manager");

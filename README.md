@@ -44,8 +44,11 @@ tableau, opérateur extérieur) et 2 volants, soit 17 personnes. Les règles son
   à couvrir est signalé, jamais caché ;
 - **validation par le manager** : chaque changement est présenté comme une proposition (postes
   réaffectés, quarts supplémentaires, contrôle des règles), puis publié ou abandonné ;
-- modification case par case, correction automatique, équipes repliables, effectifs et habilitations
-  modifiables, historique des décisions.
+- **ajout d'un collaborateur** (onglet « Équipes et règles », ou en le demandant à l'assistant) : un
+  équipier suit le cycle de son équipe dès son arrivée, en doublure ; un volant est mobilisé en priorité
+  pour les remplacements ;
+- modification case par case, correction automatique, équipes repliables, affichage compact ou
+  confortable, effectifs et habilitations modifiables, historique des décisions.
 
 Le moteur JavaScript de la page retrouve **exactement** la replanification d'OR-Tools sur le scénario de
 démonstration, l'arrêt d'E007 du 23 au 25/12 (test `tests/test_interactif.py`). La page tourne sans serveur ; les modifications restent dans

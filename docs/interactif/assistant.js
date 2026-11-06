@@ -10,6 +10,7 @@
      { type: "solde", id }
      { type: "planning_personne", id }
      { type: "generer" }
+     { type: "ajout_collaborateur" }
      { type: "aide", raison } */
 (function (global) {
   "use strict";
@@ -99,6 +100,10 @@
     const id = extrairePersonne(t, donnees);
     const dates = extraireDates(t, donnees);
 
+    if (!id && /\b(nouveau|nouvelle|ajoute|ajouter|ajout|embauche|embaucher|recrue|recrutement|arrivee|integrer)\b/.test(t) &&
+        /\b(collaborateur|collaboratrice|operateur|operatrice|chef|personne|salarie|salariee|equipier|equipiere|volant|recrue)\b/.test(t)) {
+      return { type: "ajout_collaborateur" };
+    }
     if (/\b(genere|generer|cree|creer|refais|refaire|recalcule|recalculer|construis|construire)\b.*\bplanning\b/.test(t)) {
       return { type: "generer" };
     }
