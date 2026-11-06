@@ -58,6 +58,8 @@ td.q, td.repos, td.abs { display: table-cell; }
 .diff th { color: var(--texte2); font-weight: 600; }
 .pied { border-top: 1px solid var(--bord); padding-top: 8px; font-size: 11.5px; color: var(--texte3); }
 @media (max-width: 1050px) { .kpis { grid-template-columns: repeat(3, 1fr); } }
+.lien-demo { margin: 12px 0 0; background: #fff8f3; border: 1px solid #f3c09f; border-radius: 10px; padding: 10px 14px; font-size: 13.5px; }
+.lien-demo a { color: #1c5cab; font-weight: 600; }
 .astuce { display: none; margin: 0 0 6px; font-size: 11.5px; color: var(--texte3); }
 @media (max-width: 640px) { .carte .astuce { display: block; } .kpis { grid-template-columns: 1fr 1fr; } .encadres { grid-template-columns: 1fr; } .kpi .valeur { font-size: 20px; } }
 </style>
@@ -71,6 +73,9 @@ td.q, td.repos, td.abs { display: table-cell; }
     </div>
     <span class="badge">Données entièrement fictives</span>
   </header>
+
+  <p class="lien-demo"><b>Version interactive :</b> gestion des congés, RTT et absences, assistant en français,
+     recalcul et validation par le manager — <a href="velo/">ouvrir le planning interactif (commerce et atelier vélo)</a>.</p>
 
   <section class="kpis" aria-label="Indicateurs clés"><article class='kpi'><h2>Postes couverts</h2><p class='valeur'>336 / 336</p><p class='detail'>3 quarts × 4 postes × 28 jours</p></article><article class='kpi'><h2>Règles respectées</h2><p class='valeur'>100 %</p><p class='detail'>0 anomalie au contrôle indépendant</p></article><article class='kpi'><h2>Absences gérées</h2><p class='valeur'>7</p><p class='detail'>congés, formation et imprévu</p></article><article class='kpi'><h2>Remplacements par volant</h2><p class='valeur'>20 quarts</p><p class='detail'>4 volants mobilisés</p></article><article class='kpi'><h2>Heures supplémentaires</h2><p class='valeur'>2 quarts</p><p class='detail'>2 chefs de quart absents les 15/12 et 16/12</p></article><article class='kpi'><h2>Temps de calcul</h2><p class='valeur'>≈ 1 s</p><p class='detail'>solveur OR-Tools, statut OPTIMAL</p></article></section>
 

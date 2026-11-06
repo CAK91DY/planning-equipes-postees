@@ -313,6 +313,8 @@ td.q, td.repos, td.abs { display: table-cell; }
 .diff th { color: var(--texte2); font-weight: 600; }
 .pied { border-top: 1px solid var(--bord); padding-top: 8px; font-size: 11.5px; color: var(--texte3); }
 @media (max-width: 1050px) { .kpis { grid-template-columns: repeat(3, 1fr); } }
+.lien-demo { margin: 12px 0 0; background: #fff8f3; border: 1px solid #f3c09f; border-radius: 10px; padding: 10px 14px; font-size: 13.5px; }
+.lien-demo a { color: #1c5cab; font-weight: 600; }
 .astuce { display: none; margin: 0 0 6px; font-size: 11.5px; color: var(--texte3); }
 @media (max-width: 640px) { .carte .astuce { display: block; } .kpis { grid-template-columns: 1fr 1fr; } .encadres { grid-template-columns: 1fr; } .kpi .valeur { font-size: 20px; } }
 """
@@ -351,6 +353,9 @@ def construire_page(d: dict, replanif: Path) -> str:
     </div>
     <span class="badge">Données entièrement fictives</span>
   </header>
+
+  <p class="lien-demo"><b>Version interactive :</b> gestion des congés, RTT et absences, assistant en français,
+     recalcul et validation par le manager — <a href="velo/">ouvrir le planning interactif (commerce et atelier vélo)</a>.</p>
 
   <section class="kpis" aria-label="Indicateurs clés">{kpis}</section>
 

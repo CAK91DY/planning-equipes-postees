@@ -22,6 +22,31 @@ et explicable.
 <img src="captures/planning_mobile.png" alt="Planning sur téléphone" width="320">
 </details>
 
+## Version interactive : congés, RTT, absences et assistant
+
+**Ouvrir :** https://cak91dy.github.io/planning-equipes-postees/velo/ (dossier [`docs/velo/`](docs/velo/))
+
+Un second exemple, pour une équipe de commerce avec atelier (7 collaborateurs, ouvert du lundi au
+samedi en deux créneaux), montre un **planning vivant** que le manager pilote directement :
+
+- **génération automatique** du planning à partir des règles : effectif minimum par créneau et par
+  poste, contrats, habilitations, fermetures et jours fériés ;
+- **absences, congés payés, RTT, formations**, avec des compteurs, des demandes en attente à valider
+  ou refuser, et le décompte en jours ouvrés ;
+- un **assistant en français** : « Karim est malade du 15 au 17 décembre », « RTT pour Sofia le
+  22/12 », « Qui est disponible le 19 pour l'atelier ? », « Combien de congés reste-t-il à Chloé ? » ;
+- un **recalcul en quelques millisecondes**, qui modifie le moins possible le planning publié.
+  Chaque changement passe par une **proposition** que le manager valide ou abandonne, avec les
+  changements, les heures supplémentaires, les postes non couverts et le contrôle des règles ;
+- des modifications manuelles case par case, une correction automatique et un historique des
+  décisions.
+
+Cette page tourne entièrement dans le navigateur, sans serveur ; les modifications restent dans le
+navigateur de la personne qui l'utilise. L'assistant de démonstration comprend des phrases simples,
+**sans IA externe** : aucune clé d'API ne doit figurer dans une page publique. En production, il
+s'appuie sur Claude via un serveur (`src/planning/assistant.py`). Le moteur JavaScript de la page
+est une heuristique simplifiée ; le moteur de référence reste OR-Tools.
+
 ## Résultats (planning de référence, 7 décembre 2026 → 3 janvier 2027)
 
 | | Résultat |
@@ -101,7 +126,8 @@ data/*.csv ──► solveur OR-Tools ──► output/planning.csv ──► co
 | `output/replanif/` | démonstration de replanification (données du scénario et résultat) |
 | `scripts/generer_page.py` | produit la page `docs/index.html` à partir des fichiers de sortie |
 | `scripts/demo_replanification.py` | rejoue le scénario de l'absence de E009 |
-| `tests/` | 7 tests automatiques : règles, replanification, renfort ponctuel, assistant, page |
+| `docs/velo/` | version interactive : moteur (`moteur.js`), assistant (`assistant.js`), interface (`app.js`), données fictives (`donnees.js`) |
+| `tests/` | 10 tests automatiques : règles, replanification, renfort ponctuel, assistant, page, version interactive (avec Node.js) |
 
 **Répartition des rôles.** Le solveur calcule et garantit les règles. Le contrôle vérifie.
 L'assistant IA comprend la demande et explique. **Le manager décide.**
