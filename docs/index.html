@@ -11,7 +11,8 @@
         --abs:#f8dccb; --abs-texte:#a5432a; --volant:#2a78d6; --sup:#e07b4f; }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--fond); color: var(--texte); font: 14px/1.4 "Segoe UI", Inter, system-ui, -apple-system, sans-serif; }
-.page { max-width: 1240px; margin: 0 auto; padding: 24px 16px 32px; }
+.page { max-width: 1240px; margin: 0 auto; padding-block: 24px 32px;
+        padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 .bandeau { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;
            background: var(--bandeau); color: #fff; border-left: 6px solid var(--accent); border-radius: 10px; padding: 16px 20px; }
 .surtitre { margin: 0 0 4px; color: #f0a37f; font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; }

@@ -266,7 +266,8 @@ CSS = """
         --abs:#f8dccb; --abs-texte:#a5432a; --volant:#2a78d6; --sup:#e07b4f; }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--fond); color: var(--texte); font: 14px/1.4 "Segoe UI", Inter, system-ui, -apple-system, sans-serif; }
-.page { max-width: 1240px; margin: 0 auto; padding: 24px 16px 32px; }
+.page { max-width: 1240px; margin: 0 auto; padding-block: 24px 32px;
+        padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 .bandeau { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;
            background: var(--bandeau); color: #fff; border-left: 6px solid var(--accent); border-radius: 10px; padding: 16px 20px; }
 .surtitre { margin: 0 0 4px; color: #f0a37f; font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; }
@@ -377,6 +378,15 @@ def construire_page(d: dict, replanif: Path) -> str:
 """
 
 
+def version_artifact(page: str, titre_court: str) -> str:
+    """Même page, sans l'enveloppe <html>/<head>/<body> : format attendu par l'hébergement claude.ai."""
+    style = page[page.index("<style>"):page.index("</style>") + len("</style>")]
+    corps = page[page.index("<main"):page.index("</main>") + len("</main>")]
+    return (f"<title>{e(titre_court)}</title>\n"
+            '<meta name="claude:viewport-fit-sides" content="cover">\n'
+            f"{style}\n{corps}\n")
+
+
 def main() -> None:
     p = argparse.ArgumentParser(description="Génère docs/index.html depuis le planning de référence")
     p.add_argument("--sortie-moteur", type=Path, default=RACINE / "output")
@@ -384,11 +394,17 @@ def main() -> None:
     p.add_argument("--regles", type=Path, default=RACINE / "config" / "regles.yaml")
     p.add_argument("--replanif", type=Path, default=RACINE / "output" / "replanif")
     p.add_argument("--page", type=Path, default=RACINE / "docs" / "index.html")
+    p.add_argument("--artifact", type=Path, default=None,
+                   help="écrit aussi une version à publier comme page claude.ai (sans enveloppe HTML)")
     a = p.parse_args()
     d = charger(a.sortie_moteur, a.donnees, a.regles)
+    page = construire_page(d, a.replanif)
     a.page.parent.mkdir(parents=True, exist_ok=True)
-    a.page.write_text(construire_page(d, a.replanif), encoding="utf-8")
+    a.page.write_text(page, encoding="utf-8")
     print("Page écrite :", a.page)
+    if a.artifact:
+        a.artifact.write_text(version_artifact(page, "Planning des quarts 5×8"), encoding="utf-8")
+        print("Version claude.ai écrite :", a.artifact)
 
 
 if __name__ == "__main__":
